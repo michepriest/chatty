@@ -13,7 +13,13 @@ const server = express() // Makes the express server serve static assets (html, 
 const wss = new SocketServer({ server });
 
 // Set up a callback that will run when a client connects to the server
-
+wss.broadcast = function(data) {
+  wss.clients.forEach(function each(client) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(data));
+    }
+  })
+}
 
 wss.on('connection', (ws) => { // When a client connects they are assigned a socket, represented by the 'ws' parameter in the callback.
   console.log('Client connected');
@@ -28,15 +34,17 @@ wss.on('connection', (ws) => { // When a client connects they are assigned a soc
       currentUser: data.username,
       content: data.content
     }
-    console.log(data.username, data.content)
-    console.log(message.id)
-
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(message));
-        console.log("MESSAGE", message)
-      }
-    })
+    // console.log(data.username, data.content)
+    // console.log(message.id)
+    switch(data.type) {
+      case "changeUser":
+      data.id = uniqueId;
+      wss.broadcast(data);
+      break;
+    default:
+      data.id = uniqueId;
+      wss.broadcast(data);
+    }
   })
   // Set up a callback for when a client closes the socket. This usually means they closed their browser.
   ws.on('close', () => console.log('Client disconnected'));

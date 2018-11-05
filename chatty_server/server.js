@@ -9,8 +9,7 @@ const server = express() // Makes the express server serve static assets (html, 
   .use(express.static('public'))
   .listen(PORT, '0.0.0.0', 'localhost', () => console.log(`Listening on ${ PORT }`));
 
-// Creates ws server
-const wss = new SocketServer({ server });
+const wss = new SocketServer({ server }); // Creates ws server
 
 // Set up a callback that will run when a client connects to the server
 wss.broadcast = function(data) {
@@ -23,10 +22,14 @@ wss.broadcast = function(data) {
 
 wss.on('connection', (ws) => { // When a client connects they are assigned a socket, represented by the 'ws' parameter in the callback.
   console.log('Client connected');
-  // let id = uuidv4();
-  // console.log(id);
+  let connectedClients = {
+    type: "connectedClients",
+    count: wss.clients.size
+  }
+
+  wss.broadcast(connectedClients);
   
-  ws.on('message', function(newMessage) { // new message to ws
+  ws.on('message', function(newMessage) { // New message to ws
     const data = JSON.parse(newMessage)
     const uniqueId = uuidv4();
     const message = {
@@ -34,8 +37,7 @@ wss.on('connection', (ws) => { // When a client connects they are assigned a soc
       currentUser: data.username,
       content: data.content
     }
-    // console.log(data.username, data.content)
-    // console.log(message.id)
+ 
     switch(data.type) {
       case "changeUser":
       data.id = uniqueId;
@@ -46,6 +48,13 @@ wss.on('connection', (ws) => { // When a client connects they are assigned a soc
       wss.broadcast(data);
     }
   })
-  // Set up a callback for when a client closes the socket. This usually means they closed their browser.
-  ws.on('close', () => console.log('Client disconnected'));
+  // Callback for when a client closes the socket. This usually means they closed their browser.
+  ws.on('close', () => {
+    let connectedClients2 = {
+      type: "connectedClients",
+      count: wss.clients.size
+    }
+  
+    wss.broadcast(connectedClients2);
+  });
 });
